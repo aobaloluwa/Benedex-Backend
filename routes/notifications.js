@@ -18,11 +18,20 @@ const upload = multer({ storage });
 // WEB PUSH CONFIGURATION
 // =========================================================
 
-webpush.setVapidDetails(
-  "mailto:obaloluwaajayi2006@gmail.com",
-  "BMUvDtdoxCJmJ4O_kI4zujwzYH10eO_hq357QEMh5wXZnZyjcuDTolf_wE2q6o3jMzMp4_XjFLW69xpEHmtdHR0",
-  "GgZ-szRiQwa6KpLqTpSt4-K3iN0hb1V9WcrRlglr5YI"
-);
+const vapidPublicKey = process.env.VAPID_PUBLIC_KEY;
+const vapidPrivateKey = process.env.VAPID_PRIVATE_KEY;
+
+// VAPID credentials belong in environment configuration, never in source control.
+// Push delivery remains disabled until a matching key pair is configured.
+if (vapidPublicKey && vapidPrivateKey) {
+  webpush.setVapidDetails(
+    process.env.VAPID_SUBJECT || "mailto:support@benedex.org",
+    vapidPublicKey,
+    vapidPrivateKey
+  );
+} else {
+  console.warn("Web push is not configured: set VAPID_PUBLIC_KEY and VAPID_PRIVATE_KEY.");
+}
 
 // =========================================================
 // ADMIN ACTIVITY LOGS

@@ -11,9 +11,13 @@ const client = new OAuth2Client(process.env.GOOGLE_CLIENT_ID);
 // @desc    Register standard email user
 export const registerUser = async (req, res) => {
     try {
-        const { fullName, email, password, role } = req.body;
+        const { fullName, email, password } = req.body;
 
-        const userExists = await User.findOne({ email });
+        if (!fullName || !email || !password || typeof email !== "string" || typeof password !== "string") {
+            return res.status(400).json({ message: "Full name, email, and password are required." });
+        }
+        const normalizedEmail = email.trim().toLowerCase();
+        const userExists = await User.findOne({ email: normalizedEmail });
         if (userExists) {
             return res.status(400).json({ message: "User already exists" });
         }
@@ -23,9 +27,11 @@ export const registerUser = async (req, res) => {
 
         const user = await User.create({
             fullName,
-            email,
+            email: normalizedEmail,
             password: hashedPassword,
-            role
+            // Public self-registration always creates a student. Privileged roles
+            // must be assigned through the authenticated admin user-management flow.
+            role: "student"
         });
 
         if (user.role === "student") {
@@ -53,7 +59,10 @@ export const registerUser = async (req, res) => {
 export const loginUser = async (req, res) => {
     try {
         const { email, password } = req.body;
-        const user = await User.findOne({ email });
+        if (typeof email !== "string" || typeof password !== "string" || !email.trim() || !password) {
+            return res.status(400).json({ message: "Email and password are required." });
+        }
+        const user = await User.findOne({ email: email.trim().toLowerCase() });
 
         if (!user) {
             return res.status(401).json({ message: "Invalid credentials" });
@@ -109,6 +118,9 @@ export const googleAuthCallbackSuccess = async (req, res) => {
         const payload = ticket.getPayload();
         const googleId = payload['sub']; // Google's unique structural ID for this specific user
         const email = payload['email'];
+        if (payload['email_verified'] !== true || typeof email !== "string") {
+            return res.status(401).json({ message: "Google account email is not verified." });
+        }
         const fullName = payload['name'];
         const profileImage = payload['picture'];
 

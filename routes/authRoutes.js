@@ -13,15 +13,15 @@ import { authLimiter } from '../middleware/rateLimiter.js';
 const router = express.Router();
 
 // Baseline Core Routes Handler Nodes
-router.post("/register", registerUser);
-router.post("/login", loginUser);
+router.post("/register", authLimiter, registerUser);
+router.post("/login", authLimiter, loginUser);
 
 // 🌐 GOOGLE SOCIAL LINK DATA TUNNEL
-router.post("/google", googleAuthCallbackSuccess);
+router.post("/google", authLimiter, googleAuthCallbackSuccess);
 
 // 🔒 CREDENTIAL PROTECTION RESET ROUTES
-router.post("/forgot-password", forgotPassword);
-router.put("/reset-password/:token", resetPassword);
+router.post("/forgot-password", authLimiter, forgotPassword);
+router.put("/reset-password/:token", authLimiter, resetPassword);
 
 // 🛠️ PROFILE SECURITY UPDATE VECTOR (Protected Endpoint)
 router.put("/update-password", protect, updatePassword);

@@ -1024,7 +1024,7 @@ export const getCourses = async (
       await Course.find()
         .populate(
           "instructor",
-          "fullName email profileImage role bio rating ratingCount"
+          "fullName profileImage role bio rating ratingCount"
         )
         .sort({
           createdAt: -1,
@@ -1052,6 +1052,8 @@ export const getPublishedCourses =
         await Course.find({
           status: "published",
         })
+          // Public/student course listings must never expose the enrolled-student roster.
+          .select("-students")
           .populate(
             "instructor",
             "fullName email profileImage role bio rating ratingCount"
@@ -1077,9 +1079,9 @@ export const getSingleCourse = async (
       await Course.findOne({
         _id: req.params.id,
         status: "published",
-      }).populate(
+      }).select("-students").populate(
         "instructor",
-        "fullName name email profileImage image role bio rating ratingCount"
+        "fullName name profileImage image role bio rating ratingCount"
       );
 
     if (!course) {
@@ -1455,10 +1457,13 @@ export const enrollCourse = async (
       points: 10,
     });
 
+    // Return course metadata only; never echo the full students array to the enrolling user.
+    const courseResponse = course.toObject();
+    delete courseResponse.students;
+
     res.json({
-      message:
-        "Enrollment successful",
-      course,
+      message: "Enrollment successful",
+      course: courseResponse,
     });
 
     try {

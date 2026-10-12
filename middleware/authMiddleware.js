@@ -4,55 +4,50 @@ import Settings from "../models/Settings.js";
 
 const protect = async (req, res, next) => {
   try {
-    let token;
+    const authorization = req.headers.authorization;
+    if (typeof authorization !== "string" || !authorization.startsWith("Bearer ")) {
+      return res.status(401).json({ message: "Authentication required." });
+    }
 
-    if (
-      req.headers.authorization &&
-      req.headers.authorization.startsWith("Bearer")
-    ) {
-      token = req.headers.authorization.split(" ")[1];
+    const token = authorization.slice(7).trim();
+    if (!token || !process.env.JWT_SECRET) {
+      return res.status(401).json({ message: "Invalid authentication token." });
+    }
 
-      const decoded = jwt.verify(
-        token,
-        process.env.JWT_SECRET
-      );
+    const decoded = jwt.verify(token, process.env.JWT_SECRET);
+    if (!decoded || typeof decoded.id !== "string") {
+      return res.status(401).json({ message: "Invalid authentication token." });
+    }
 
-      req.user = await User.findById(
-        decoded.id
-      ).select("-password");
+    const user = await User.findById(decoded.id).select("-password -resetPasswordToken -resetPasswordExpires");
+    if (!user) {
+      return res.status(401).json({ message: "Account is no longer available." });
+    }
+    if (user.status === "suspended") {
+      return res.status(403).json({ message: "This account has been suspended." });
+    }
 
-      // ==========================================
-      // GLOBAL AUTO-INTERCEPT: MAINTENANCE CHECK
-      // ==========================================
-      const systemConfig = await Settings.findOne();
-      
-      if (systemConfig?.maintenanceMode && req.user && req.user.role !== "admin") {
-        return res.status(503).json({
-          maintenance: true,
-          message: "System Optimization Active. Platform is temporarily offline for students and instructors."
-        });
-      }
-      // ==========================================
+    req.user = user;
 
-      // If everything is normal or user is an admin, let them proceed
-      next();
-    } else {
-      return res.status(401).json({
-        message: "No token, access denied"
+    const systemConfig = await Settings.findOne();
+    if (systemConfig?.maintenanceMode && user.role !== "admin") {
+      return res.status(503).json({
+        maintenance: true,
+        message: "System Optimization Active. Platform is temporarily offline for students and instructors."
       });
     }
+
+    return next();
   } catch (error) {
-    return res.status(401).json({
-      message: "Token invalid"
-    });
+    return res.status(401).json({ message: "Invalid or expired authentication token." });
   }
 };
 
 const authorize = (...roles) => {
   return (req, res, next) => {
-    if (!roles.includes(req.user.role)) {
+    if (!req.user || !roles.includes(req.user.role)) {
       return res.status(403).json({
-        message: `Role ${req.user.role} not authorized`
+        message: "You are not authorized to perform this action."
       });
     }
     next();
@@ -72,7 +67,7 @@ const checkMaintenance = async (req, res, next) => {
     next();
   } catch (error) {
     return res.status(500).json({
-      message: "Error checking system operational status: " + error.message
+      message: "Unable to verify platform availability."
     });
   }
 };

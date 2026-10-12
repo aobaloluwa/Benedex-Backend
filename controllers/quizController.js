@@ -5,6 +5,26 @@ import Module from "../models/Module.js";
 import Course from "../models/Course.js";
 import { callOpenRouterAI } from "../utils/aiHelpers.js";
 
+
+// Whitelist the fields a student needs to take a quiz. Never serialize answer keys.
+const toStudentQuiz = (quiz) => {
+  const source = typeof quiz?.toObject === "function" ? quiz.toObject() : quiz;
+  return {
+    _id: source._id,
+    title: source.title,
+    description: source.description,
+    module: source.module,
+    passMark: source.passMark,
+    questions: (source.questions || []).map((question) => ({
+      _id: question._id,
+      question: question.question,
+      options: question.options,
+    })),
+    createdAt: source.createdAt,
+    updatedAt: source.updatedAt,
+  };
+};
+
 const ensureAdmin = (req, res) => {
   if (!req.user || req.user.role !== "admin") {
     res.status(403).json({
@@ -712,7 +732,7 @@ export const getModuleQuiz = async (
       });
     }
 
-    res.json(quiz);
+    res.json(toStudentQuiz(quiz));
   } catch (error) {
     console.error(
       "Get module quiz error:",
@@ -759,7 +779,7 @@ export const getQuizById = async (
       });
     }
 
-    res.json(quiz);
+    res.json(toStudentQuiz(quiz));
   } catch (error) {
     console.error(
       "Get quiz by ID error:",
