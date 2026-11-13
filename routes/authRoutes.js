@@ -23,6 +23,7 @@ router.post("/google", authLimiter, googleAuthCallbackSuccess);
 
 // 🔒 CREDENTIAL PROTECTION RESET ROUTES
 router.post("/forgot-password", authLimiter, forgotPassword);
+router.post("/reset-password/:token", authLimiter, resetPassword);
 router.put("/reset-password/:token", authLimiter, resetPassword);
 
 // 🛠️ PROFILE SECURITY & DATA UPDATE VECTORS (Protected Endpoints)
