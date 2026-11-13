@@ -5,6 +5,7 @@ import {
     googleAuthCallbackSuccess,
     forgotPassword,
     resetPassword,
+    verifyResetCode,
     updatePassword,
     updateProfile,
     getMe
@@ -23,6 +24,7 @@ router.post("/google", authLimiter, googleAuthCallbackSuccess);
 
 // 🔒 CREDENTIAL PROTECTION RESET ROUTES
 router.post("/forgot-password", authLimiter, forgotPassword);
+router.post("/verify-reset-code", authLimiter, verifyResetCode);
 router.post("/reset-password/:token", authLimiter, resetPassword);
 router.put("/reset-password/:token", authLimiter, resetPassword);
 

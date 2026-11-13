@@ -248,6 +248,43 @@ export const forgotPassword = async (req, res) => {
     }
 };
 
+// @desc    Verify 6-digit password reset code with database
+// @route   POST /api/auth/verify-reset-code
+// @access  Public
+export const verifyResetCode = async (req, res) => {
+    try {
+        const { code, email } = req.body;
+
+        if (!code || typeof code !== "string" || !code.trim()) {
+            return res.status(400).json({ message: "Verification code is required." });
+        }
+
+        const hashedToken = crypto.createHash("sha256").update(code.trim()).digest("hex");
+
+        const query = {
+            resetPasswordToken: hashedToken,
+            resetPasswordExpires: { $gt: Date.now() }
+        };
+
+        if (email && typeof email === "string" && email.trim()) {
+            query.email = email.trim().toLowerCase();
+        }
+
+        const user = await User.findOne(query);
+
+        if (!user) {
+            return res.status(400).json({ message: "Verification code is invalid or has expired." });
+        }
+
+        res.status(200).json({
+            success: true,
+            message: "Verification code validated successfully!"
+        });
+    } catch (error) {
+        res.status(500).json({ message: "Code verification failure: " + error.message });
+    }
+};
+
 // @desc    Reset password with validated security token
 // @route   POST /api/auth/reset-password/:token
 // @access  Public
