@@ -1050,7 +1050,7 @@ export const getPublishedCourses =
     try {
       const courses =
         await Course.find({
-          status: "published",
+          status: { $ne: "draft" }
         })
           // Public/student course listings must never expose the enrolled-student roster.
           .select("-students")

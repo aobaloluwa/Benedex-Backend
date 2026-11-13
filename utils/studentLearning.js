@@ -1,9 +1,15 @@
 import LearningActivity from "../models/LearningActivity.js";
 
 const badgeRules = [
+  { xp: 50, label: "Fast Learner" },
   { xp: 100, label: "Beginner" },
+  { xp: 200, label: "Code Master" },
   { xp: 300, label: "Intermediate" },
+  { xp: 400, label: "Bug Hunter" },
+  { xp: 500, label: "Team Lead" },
   { xp: 600, label: "Advanced" },
+  { xp: 750, label: "UI Architect" },
+  { xp: 900, label: "Data Wizard" },
   { xp: 1000, label: "Expert" },
 ];
 
@@ -44,8 +50,17 @@ export const applyXpToUser = async (user, points = 0) => {
     user.xp = (user.xp || 0) + xpGain;
   }
 
+  if (!Array.isArray(user.badges)) {
+    user.badges = [];
+  }
+
+  // Ensure default welcome badge for active students
+  if (!user.badges.includes("Fast Learner")) {
+    user.badges.push("Fast Learner");
+  }
+
   badgeRules.forEach((rule) => {
-    if (user.xp >= rule.xp && !user.badges.includes(rule.label)) {
+    if ((user.xp || 0) >= rule.xp && !user.badges.includes(rule.label)) {
       user.badges.push(rule.label);
     }
   });
