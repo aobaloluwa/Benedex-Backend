@@ -2,15 +2,12 @@ import LearningActivity from "../models/LearningActivity.js";
 
 const badgeRules = [
   { xp: 50, label: "Fast Learner" },
-  { xp: 100, label: "Beginner" },
-  { xp: 200, label: "Code Master" },
-  { xp: 300, label: "Intermediate" },
-  { xp: 400, label: "Bug Hunter" },
-  { xp: 500, label: "Team Lead" },
-  { xp: 600, label: "Advanced" },
-  { xp: 750, label: "UI Architect" },
-  { xp: 900, label: "Data Wizard" },
-  { xp: 1000, label: "Expert" },
+  { xp: 100, label: "Knowledge Seeker" },
+  { xp: 200, label: "Consistent Scholar" },
+  { xp: 350, label: "Curriculum Master" },
+  { xp: 500, label: "Top Evaluator" },
+  { xp: 750, label: "Interactive Peer" },
+  { xp: 1000, label: "Academic Scholar" },
 ];
 
 const monthNames = [
