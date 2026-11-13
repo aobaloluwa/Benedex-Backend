@@ -46,12 +46,35 @@ const PORT = process.env.PORT || 5000;
 // CORS
 // --------------------------------------------------
 
-const frontendUrl =
-    process.env.FRONTEND_URL || "http://localhost:5173";
+const allowedOrigins = [
+    "http://localhost:5173",
+    "http://127.0.0.1:5173",
+    "http://localhost:3000",
+    "http://127.0.0.1:3000",
+    "https://benedex.org",
+    "https://www.benedex.org",
+    process.env.FRONTEND_URL
+].filter(Boolean);
+
+const checkCorsOrigin = (origin, callback) => {
+    if (!origin) return callback(null, true);
+
+    if (
+        allowedOrigins.includes(origin) ||
+        /^http:\/\/(localhost|127\.0\.0\.1)(:\d+)?$/.test(origin) ||
+        /\.vercel\.app$/.test(origin) ||
+        /\.benedex\.org$/.test(origin)
+    ) {
+        return callback(null, true);
+    }
+
+    return callback(null, true);
+};
 
 app.use(
     cors({
-        origin: frontendUrl,
+        origin: checkCorsOrigin,
+        credentials: true,
         methods: [
             "GET",
             "POST",
@@ -63,6 +86,8 @@ app.use(
         allowedHeaders: [
             "Content-Type",
             "Authorization",
+            "X-Requested-With",
+            "Accept",
         ],
     })
 );
@@ -74,8 +99,9 @@ app.use(
 
 const io = new Server(server, {
     cors: {
-        origin: frontendUrl,
-        methods: ["GET", "POST"],
+        origin: checkCorsOrigin,
+        methods: ["GET", "POST", "PUT", "DELETE"],
+        credentials: true,
     },
 });
 
