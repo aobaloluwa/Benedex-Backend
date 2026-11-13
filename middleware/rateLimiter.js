@@ -38,7 +38,7 @@ export const authLimiter = rateLimit({
 
     windowMs: 15 * 60 * 1000,
 
-    max: 5,
+    max: 100,
 
     message: {
         message:
@@ -51,6 +51,6 @@ export const authLimiter = rateLimit({
 
     // Authentication preflight requests should also
     // never count toward the authentication limit.
-    skip: (req) => req.method === "OPTIONS",
+    skip: (req) => req.method === "OPTIONS" || process.env.NODE_ENV !== "production",
 
 });
