@@ -5,7 +5,9 @@ import {
     googleAuthCallbackSuccess,
     forgotPassword,
     resetPassword,
-    updatePassword // 1. Import your new controller method here
+    updatePassword,
+    updateProfile,
+    getMe
 } from "../controllers/authController.js";
 import { protect } from "../middleware/authMiddleware.js";
 import { authLimiter } from '../middleware/rateLimiter.js'; 
@@ -23,7 +25,9 @@ router.post("/google", authLimiter, googleAuthCallbackSuccess);
 router.post("/forgot-password", authLimiter, forgotPassword);
 router.put("/reset-password/:token", authLimiter, resetPassword);
 
-// 🛠️ PROFILE SECURITY UPDATE VECTOR (Protected Endpoint)
+// 🛠️ PROFILE SECURITY & DATA UPDATE VECTORS (Protected Endpoints)
+router.get("/me", protect, getMe);
+router.put("/update-profile", protect, updateProfile);
 router.put("/update-password", protect, updatePassword);
 
 export default router;

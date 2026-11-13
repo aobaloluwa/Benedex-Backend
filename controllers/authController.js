@@ -299,3 +299,58 @@ export const updatePassword = async (req, res) => {
         res.status(500).json({ message: "Password update sequence error: " + error.message });
     }
 };
+
+// @desc    Update user profile details (fullName, profileImage)
+// @route   PUT /api/auth/update-profile
+// @access  Private
+export const updateProfile = async (req, res) => {
+    try {
+        const { fullName, profileImage } = req.body;
+
+        const user = await User.findById(req.user?._id);
+        if (!user) {
+            return res.status(404).json({ message: "User account not found." });
+        }
+
+        if (fullName !== undefined && fullName.trim() !== "") {
+            user.fullName = fullName.trim();
+        }
+
+        if (profileImage !== undefined) {
+            user.profileImage = profileImage;
+        }
+
+        await user.save();
+
+        res.status(200).json({
+            success: true,
+            message: "Profile details updated successfully!",
+            user: {
+                _id: user._id,
+                fullName: user.fullName,
+                email: user.email,
+                role: user.role,
+                profileImage: user.profileImage,
+                xp: user.xp,
+                badges: user.badges
+            }
+        });
+    } catch (error) {
+        res.status(500).json({ message: "Profile update sequence error: " + error.message });
+    }
+};
+
+// @desc    Get current authenticated user profile
+// @route   GET /api/auth/me
+// @access  Private
+export const getMe = async (req, res) => {
+    try {
+        const user = await User.findById(req.user?._id).select("-password");
+        if (!user) {
+            return res.status(404).json({ message: "User account not found." });
+        }
+        res.status(200).json(user);
+    } catch (error) {
+        res.status(500).json({ message: "Profile retrieval error: " + error.message });
+    }
+};
