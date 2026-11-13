@@ -188,11 +188,18 @@ export const forgotPassword = async (req, res) => {
 
         await user.save();
 
-        // 3. Create Gmail Transporter
-        let transporter;
+        // 3. Log code to server console for instant verification & development feedback
+        console.log(`\n========================================`);
+        console.log(`🔑 PASSWORD RESET CODE FOR: ${user.email}`);
+        console.log(`👉 VERIFICATION CODE: ${verificationCode}`);
+        console.log(`========================================\n`);
+
+        // 4. Send background email if EMAIL_USER and EMAIL_PASS are present
         if (process.env.EMAIL_USER && process.env.EMAIL_PASS) {
-            transporter = nodemailer.createTransport({
-                service: 'gmail',
+            const transporter = nodemailer.createTransport({
+                host: process.env.EMAIL_HOST || 'smtp.gmail.com',
+                port: Number(process.env.EMAIL_PORT) || 587,
+                secure: false, // STARTTLS
                 auth: {
                     user: process.env.EMAIL_USER,
                     pass: process.env.EMAIL_PASS,
@@ -201,47 +208,40 @@ export const forgotPassword = async (req, res) => {
                     rejectUnauthorized: false
                 }
             });
-        }
 
-        // 4. Draft the Email Template
-        const mailOptions = {
-            from: `"Benedex Support" <${process.env.EMAIL_USER || "support@benedex.org"}>`,
-            to: user.email,
-            subject: "Your Password Reset Verification Code",
-            html: `
-                <div style="font-family: Arial, sans-serif; max-width: 600px; margin: 0 auto; padding: 20px; border: 1px solid #eee; border-radius: 8px;">
-                    <h2 style="color: #194066; text-align: center;">Password Reset Request</h2>
-                    <p>Hello ${user.fullName},</p>
-                    <p>We received a request to reset your password. Use the verification code below to complete your reset sequence. This code is active for <strong>10 minutes</strong>.</p>
-                    <div style="text-align: center; margin: 30px 0;">
-                        <span style="font-size: 32px; font-weight: bold; letter-spacing: 6px; padding: 12px 24px; background-color: #f4f6f8; border-radius: 4px; color: #1E844F; border: 1px dashed #1E844F;">
-                            ${verificationCode}
-                        </span>
+            const mailOptions = {
+                from: `"Benedex Support" <${process.env.EMAIL_USER}>`,
+                to: user.email,
+                subject: "Your Password Reset Verification Code",
+                html: `
+                    <div style="font-family: Arial, sans-serif; max-width: 600px; margin: 0 auto; padding: 20px; border: 1px solid #eee; border-radius: 8px;">
+                        <h2 style="color: #194066; text-align: center;">Password Reset Request</h2>
+                        <p>Hello ${user.fullName},</p>
+                        <p>We received a request to reset your password. Use the verification code below to complete your reset sequence. This code is active for <strong>10 minutes</strong>.</p>
+                        <div style="text-align: center; margin: 30px 0;">
+                            <span style="font-size: 32px; font-weight: bold; letter-spacing: 6px; padding: 12px 24px; background-color: #f4f6f8; border-radius: 4px; color: #1E844F; border: 1px dashed #1E844F;">
+                                ${verificationCode}
+                            </span>
+                        </div>
+                        <p style="font-size: 12px; color: #666;">If you did not initiate this request, please ignore this email or secure your account credentials.</p>
                     </div>
-                    <p style="font-size: 12px; color: #666;">If you did not initiate this request, please ignore this email or secure your account credentials.</p>
-                </div>
-            `,
-        };
+                `,
+            };
 
-        // 5. Fire the email delivery vector
-        if (transporter) {
-            try {
-                await transporter.sendMail(mailOptions);
-            } catch (emailError) {
-                console.error("Nodemailer sendMail error:", emailError);
-                console.log(`[VERIFICATION CODE FALLBACK] Code for ${user.email}: ${verificationCode}`);
-            }
-        } else {
-            console.log(`[VERIFICATION CODE FALLBACK] Code for ${user.email}: ${verificationCode}`);
+            // Fire background email dispatch (non-blocking)
+            transporter.sendMail(mailOptions).catch((emailError) => {
+                console.error("Nodemailer background sendMail error:", emailError?.message || emailError);
+            });
         }
 
-        res.status(200).json({
+        // Return HTTP 200 response immediately
+        return res.status(200).json({
             success: true,
             message: "A password verification code has been successfully dispatched to your email inbox."
         });
 
     } catch (error) {
-        res.status(500).json({ message: "Email delivery system failure: " + error.message });
+        return res.status(500).json({ message: "Password reset request failure: " + error.message });
     }
 };
 
