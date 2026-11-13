@@ -162,12 +162,18 @@ export const googleAuthCallbackSuccess = async (req, res) => {
     }
 };
 
-// @desc    Generate password reset token string vectors
-// @desc    Generate password reset token string vectors
+// @desc    Generate password reset token code
+// @route   POST /api/auth/forgot-password
+// @access  Public
 export const forgotPassword = async (req, res) => {
     try {
         const { email } = req.body;
-        const user = await User.findOne({ email });
+        if (!email || typeof email !== "string" || !email.trim()) {
+            return res.status(400).json({ message: "Valid email address is required." });
+        }
+
+        const normalizedEmail = email.trim().toLowerCase();
+        const user = await User.findOne({ email: normalizedEmail });
 
         if (!user) {
             return res.status(404).json({ message: "No user account matched with that email address." });
@@ -182,23 +188,24 @@ export const forgotPassword = async (req, res) => {
 
         await user.save();
 
-        // 3. Force IPv4 routing via an explicit DNS lookup handler and use Secure SSL Port 465
-        const transporter = nodemailer.createTransport({
-            host: 'smtp.gmail.com',
-            port: 465,
-            secure: true, // Absolute SSL connection
-            auth: {
-                user: process.env.EMAIL_USER,
-                pass: process.env.EMAIL_PASS,
-            },
-            tls: {
-                rejectUnauthorized: false
-            }
-        });
+        // 3. Create Gmail Transporter
+        let transporter;
+        if (process.env.EMAIL_USER && process.env.EMAIL_PASS) {
+            transporter = nodemailer.createTransport({
+                service: 'gmail',
+                auth: {
+                    user: process.env.EMAIL_USER,
+                    pass: process.env.EMAIL_PASS,
+                },
+                tls: {
+                    rejectUnauthorized: false
+                }
+            });
+        }
 
         // 4. Draft the Email Template
         const mailOptions = {
-            from: `"Benedex Support" <${process.env.EMAIL_USER}>`,
+            from: `"Benedex Support" <${process.env.EMAIL_USER || "support@benedex.org"}>`,
             to: user.email,
             subject: "Your Password Reset Verification Code",
             html: `
@@ -217,7 +224,16 @@ export const forgotPassword = async (req, res) => {
         };
 
         // 5. Fire the email delivery vector
-        await transporter.sendMail(mailOptions);
+        if (transporter) {
+            try {
+                await transporter.sendMail(mailOptions);
+            } catch (emailError) {
+                console.error("Nodemailer sendMail error:", emailError);
+                console.log(`[VERIFICATION CODE FALLBACK] Code for ${user.email}: ${verificationCode}`);
+            }
+        } else {
+            console.log(`[VERIFICATION CODE FALLBACK] Code for ${user.email}: ${verificationCode}`);
+        }
 
         res.status(200).json({
             success: true,
@@ -229,13 +245,19 @@ export const forgotPassword = async (req, res) => {
     }
 };
 
-// @desc    Reset operational entry parameters with validated security token
+// @desc    Reset password with validated security token
+// @route   POST /api/auth/reset-password/:token
+// @access  Public
 export const resetPassword = async (req, res) => {
     try {
         const { token } = req.params;
         const { password } = req.body;
 
-        const hashedToken = crypto.createHash("sha256").update(token).digest("hex");
+        if (!password || typeof password !== "string" || password.length < 6) {
+            return res.status(400).json({ message: "New password must be at least 6 characters long." });
+        }
+
+        const hashedToken = crypto.createHash("sha256").update(token.trim()).digest("hex");
 
         const user = await User.findOne({
             resetPasswordToken: hashedToken,
@@ -243,7 +265,7 @@ export const resetPassword = async (req, res) => {
         });
 
         if (!user) {
-            return res.status(400).json({ message: "Reset token is invalid or has expired." });
+            return res.status(400).json({ message: "Verification code is invalid or has expired." });
         }
 
         // Encrypt the new target password entry string
