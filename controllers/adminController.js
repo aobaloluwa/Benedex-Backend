@@ -14,8 +14,10 @@ export const getAdminAnalytics = async (req, res) => {
     const totalStudents = await User.countDocuments({ role: "student" });
     const totalInstructors = await User.countDocuments({ role: "instructor" });
 
-    // Courses
+    // Courses & Curriculum Status
     const totalCourses = await Course.countDocuments();
+    const publishedCourses = await Course.countDocuments({ status: { $ne: "draft" } });
+    const completedCurriculumRate = totalCourses > 0 ? Math.round((publishedCourses / totalCourses) * 100) : 0;
 
     // Enrollments
     const courses = await Course.find();
@@ -78,6 +80,8 @@ export const getAdminAnalytics = async (req, res) => {
         totalStudents,
         totalInstructors,
         totalCourses,
+        publishedCourses,
+        completedCurriculumRate,
         totalEnrollments,
         totalRevenue,
         pendingSubmissions
