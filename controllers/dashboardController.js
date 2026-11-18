@@ -330,6 +330,33 @@ export const getStudentDashboard = async (req, res) => {
       );
 
 
+    // Compute earned badges dynamically based on user XP
+    const badgeRules = [
+      { xp: 50, label: "Fast Learner" },
+      { xp: 100, label: "Knowledge Seeker" },
+      { xp: 200, label: "Consistent Scholar" },
+      { xp: 350, label: "Curriculum Master" },
+      { xp: 500, label: "Top Evaluator" },
+      { xp: 750, label: "Interactive Peer" },
+      { xp: 1000, label: "Academic Scholar" },
+    ];
+
+    const currentBadges = Array.isArray(user.badges) ? [...user.badges] : [];
+    let updatedBadges = false;
+
+    badgeRules.forEach((rule) => {
+      if (userXp >= rule.xp && !currentBadges.includes(rule.label)) {
+        currentBadges.push(rule.label);
+        updatedBadges = true;
+      }
+    });
+
+    if (updatedBadges) {
+      User.findByIdAndUpdate(userId, { badges: currentBadges }).exec().catch((err) => {
+        console.error("Async badge sync error:", err);
+      });
+    }
+
     // ==========================================================
     // 9. RETURN DASHBOARD
     // ==========================================================
@@ -345,8 +372,7 @@ export const getStudentDashboard = async (req, res) => {
 
       xpProgress,
 
-      badges:
-        user.badges || [],
+      badges: currentBadges,
 
       /*
        * IMPORTANT:
