@@ -34,6 +34,30 @@ export const getAdminAnalytics = async (req, res) => {
     // Pending submissions
     const pendingSubmissions = await Submission.countDocuments({ status: "pending" });
 
+    // Monthly Revenue Trajectory (6 Months Window)
+    const monthNames = ["Jan", "Feb", "Mar", "Apr", "May", "Jun", "Jul", "Aug", "Sep", "Oct", "Nov", "Dec"];
+    const now = new Date();
+    const monthlyRevenue = [];
+
+    for (let i = 5; i >= 0; i--) {
+      const d = new Date(now.getFullYear(), now.getMonth() - i, 1);
+      const monthStart = new Date(d.getFullYear(), d.getMonth(), 1);
+      const monthEnd = new Date(d.getFullYear(), d.getMonth() + 1, 0, 23, 59, 59, 999);
+      const monthLabel = monthNames[d.getMonth()];
+
+      const monthPayments = await Payment.find({
+        status: "success",
+        createdAt: { $gte: monthStart, $lte: monthEnd }
+      });
+
+      const revenue = monthPayments.reduce((sum, p) => sum + (p.amount || 0), 0);
+      monthlyRevenue.push({
+        month: monthLabel,
+        year: d.getFullYear(),
+        revenue
+      });
+    }
+
     // Recent payments
     const recentPayments = await Payment.find({ status: "success" })
       .populate("student", "fullName email")
@@ -58,7 +82,8 @@ export const getAdminAnalytics = async (req, res) => {
         totalRevenue,
         pendingSubmissions
       },
-      recentPayments
+      recentPayments,
+      monthlyRevenue
     });
   } catch (error) {
     res.status(500).json({ message: error.message });
