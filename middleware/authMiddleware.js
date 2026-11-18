@@ -30,7 +30,7 @@ const protect = async (req, res, next) => {
     req.user = user;
 
     const systemConfig = await Settings.findOne();
-    if (systemConfig?.maintenanceMode && user.role !== "admin") {
+    if (systemConfig?.maintenanceMode && user.role !== "admin" && user.role !== "superadmin") {
       return res.status(503).json({
         maintenance: true,
         message: "System Optimization Active. Platform is temporarily offline for students and instructors."
@@ -45,7 +45,17 @@ const protect = async (req, res, next) => {
 
 const authorize = (...roles) => {
   return (req, res, next) => {
-    if (!req.user || !roles.includes(req.user.role)) {
+    if (!req.user) {
+      return res.status(403).json({
+        message: "You are not authorized to perform this action."
+      });
+    }
+
+    const userRole = req.user.role;
+    // superadmin has all standard admin rights by default
+    const isAllowed = roles.includes(userRole) || (userRole === "superadmin" && roles.includes("admin"));
+
+    if (!isAllowed) {
       return res.status(403).json({
         message: "You are not authorized to perform this action."
       });
@@ -58,7 +68,7 @@ const authorize = (...roles) => {
 const checkMaintenance = async (req, res, next) => {
   try {
     const systemConfig = await Settings.findOne();
-    if (systemConfig?.maintenanceMode && req.user && req.user.role !== "admin") {
+    if (systemConfig?.maintenanceMode && req.user && req.user.role !== "admin" && req.user.role !== "superadmin") {
       return res.status(503).json({
         maintenance: true,
         message: "System Optimization Active. Platform is temporarily offline for students and instructors."

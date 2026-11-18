@@ -32,7 +32,7 @@ router.post(
 router.get(
   "/all",
   protect,
-  authorize("admin"),
+  authorize("superadmin"),
   getAllPaymentsForAdmin
 );
 

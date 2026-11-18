@@ -53,10 +53,10 @@ router.get("/admin-logs", protect, async (req, res) => {
     // ADMIN CHECK
     // -------------------------------------------------------
 
-    if (req.user.role !== "admin") {
+    if (req.user.role !== "superadmin") {
       return res.status(403).json({
         success: false,
-        message: "Access denied. Admin privileges required.",
+        message: "Access denied. Superadmin privileges required.",
       });
     }
 
@@ -203,8 +203,8 @@ router.post(
   protect,
   upload.single("image"),
   async (req, res) => {
-    // Guard: Ensure only admins can trigger this endpoint
-    if (req.user.role !== "admin") {
+    // Guard: Ensure only admins or superadmins can trigger this endpoint
+    if (req.user.role !== "admin" && req.user.role !== "superadmin") {
       return res.status(403).json({
         message:
           "Access denied. Administrator privileges required.",

@@ -15,15 +15,14 @@ const router = express.Router();
 router.post(
   "/",
   protect,
-  authorize("admin"),
+  authorize("superadmin"),
   createUser
 );
 
-// ... keep all your other router paths below ...
-router.get("/", protect, authorize("admin"), getUsers);
-router.get("/:id", protect, authorize("admin"), getSingleUser);
-router.put("/role/:id", protect, authorize("admin"), updateRole);
-router.put("/status/:id", protect, authorize("admin"), updateStatus);
-router.delete("/:id", protect, authorize("admin"), deleteUser);
+router.get("/", protect, authorize("superadmin"), getUsers);
+router.get("/:id", protect, authorize("superadmin"), getSingleUser);
+router.put("/role/:id", protect, authorize("superadmin"), updateRole);
+router.put("/status/:id", protect, authorize("superadmin"), updateStatus);
+router.delete("/:id", protect, authorize("superadmin"), deleteUser);
 
 export default router;

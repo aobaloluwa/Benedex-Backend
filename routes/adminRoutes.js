@@ -15,7 +15,7 @@ const router = express.Router();
 router.get(
   "/analytics",
   protect,
-  authorize("admin"),
+  authorize("superadmin"),
   getAdminAnalytics
 );
 

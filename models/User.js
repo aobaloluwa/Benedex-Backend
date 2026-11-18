@@ -26,7 +26,7 @@ const userSchema = new mongoose.Schema(
         },
         role: {
             type: String,
-            enum: ["student", "admin", "instructor"],
+            enum: ["student", "admin", "instructor", "superadmin"],
             default: "student"
         },
         status: {

@@ -32,7 +32,7 @@ getSettings
 router.put(
 "/",
 protect,
-authorize("admin"),
+authorize("superadmin"),
 updateSettings
 );
 

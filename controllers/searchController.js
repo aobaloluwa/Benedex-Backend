@@ -18,8 +18,8 @@ export const globalOmniboxSearch = async (req, res) => {
       Course.find({ title: searchRegex }).select('title _id').limit(5).lean()
     ];
 
-    // ONLY Instructors and Admins are permitted to look up student profiles
-    if (userRole === 'instructor' || userRole === 'admin') {
+    // ONLY Instructors and Admins/Superadmins are permitted to look up student profiles
+    if (['instructor', 'admin', 'superadmin'].includes(userRole)) {
       databaseTasks.push(
         User.find({ fullName: searchRegex, role: 'student' })
           .select('fullName role _id profileImage')
@@ -33,7 +33,7 @@ export const globalOmniboxSearch = async (req, res) => {
     // 2. Standardize property formatting keys for the frontend
     const formattedCourses = (courses || []).map(course => ({
       title: course.title,
-      path: userRole === 'admin' ? `/admin/courses` : `/student/courses`,
+      path: (userRole === 'admin' || userRole === 'superadmin') ? `/admin/courses` : `/student/courses`,
       type: 'Course'
     }));
 
