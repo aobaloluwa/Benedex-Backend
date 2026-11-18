@@ -2,6 +2,7 @@ import "dotenv/config";
 
 import express from "express";
 import cors from "cors";
+import compression from "compression";
 import http from "http";
 import { Server } from "socket.io";
 
@@ -112,6 +113,7 @@ const io = new Server(server, {
 
 app.set("trust proxy", 1);
 
+app.use(compression());
 
 // Rate limiter comes AFTER CORS.
 // OPTIONS requests are skipped inside rateLimiter.js.

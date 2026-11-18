@@ -67,6 +67,8 @@ const lessonSchema = new mongoose.Schema(
   }
 );
 
+lessonSchema.index({ module: 1 });
+
 const Lesson = mongoose.model("Lesson", lessonSchema);
 
 export default Lesson;

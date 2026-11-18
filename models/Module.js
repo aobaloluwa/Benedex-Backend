@@ -42,6 +42,8 @@ const moduleSchema = new mongoose.Schema(
   }
 );
 
+moduleSchema.index({ course: 1 });
+
 const Module = mongoose.model("Module", moduleSchema);
 
 export default Module;

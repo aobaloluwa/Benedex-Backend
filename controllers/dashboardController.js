@@ -156,186 +156,91 @@ export const getStudentDashboard = async (req, res) => {
 
 
     // ==========================================================
-    // 4. BUILD COURSE PROGRESS
+    // 4. BUILD COURSE PROGRESS (OPTIMIZED BATCH FETCH)
     // ==========================================================
 
-    const coursesWithProgress =
-      await Promise.all(
-        enrolledCourses.map(
-          async (course) => {
-            const courseId = String(
-              course._id
-            );
+    const enrolledCourseIds = enrolledCourses.map((c) => c._id);
 
-            // --------------------------------------------------
-            // Find modules for this course
-            // --------------------------------------------------
+    const allModules = enrolledCourseIds.length > 0
+      ? await Module.find({
+          $or: [
+            { course: { $in: enrolledCourseIds } },
+            { courseId: { $in: enrolledCourseIds } },
+          ],
+        })
+          .select("_id course courseId")
+          .lean()
+          .catch(() => [])
+      : [];
 
-            let modules = [];
+    const allModuleIds = allModules.map((m) => m._id).filter(Boolean);
 
-            try {
-              modules = await Module.find({
-                $or: [
-                  {
-                    course: course._id,
-                  },
-                  {
-                    courseId: course._id,
-                  },
-                ],
-              })
-                .select("_id course courseId")
-                .lean();
-            } catch (moduleError) {
-              console.error(
-                `Error finding modules for course ${courseId}:`,
-                moduleError
-              );
+    const allLessons = allModuleIds.length > 0
+      ? await Lesson.find({
+          $or: [
+            { module: { $in: allModuleIds } },
+            { moduleId: { $in: allModuleIds } },
+          ],
+        })
+          .select("_id module moduleId title")
+          .lean()
+          .catch(() => [])
+      : [];
 
-              modules = [];
-            }
+    const modulesByCourseId = new Map();
+    allModules.forEach((m) => {
+      const cId = String(m.course || m.courseId);
+      if (!modulesByCourseId.has(cId)) modulesByCourseId.set(cId, []);
+      modulesByCourseId.get(cId).push(m);
+    });
 
+    const lessonsByModuleId = new Map();
+    allLessons.forEach((l) => {
+      const mId = String(l.module || l.moduleId);
+      if (!lessonsByModuleId.has(mId)) lessonsByModuleId.set(mId, []);
+      lessonsByModuleId.get(mId).push(l);
+    });
 
-            // --------------------------------------------------
-            // Get module IDs
-            // --------------------------------------------------
+    const coursesWithProgress = enrolledCourses.map((course) => {
+      const courseId = String(course._id);
+      const modules = modulesByCourseId.get(courseId) || [];
+      const moduleIds = new Set(modules.map((m) => String(m._id)));
 
-            const moduleIds = modules
-              .map(
-                (module) =>
-                  module._id
-              )
-              .filter(Boolean);
+      let lessons = [];
+      moduleIds.forEach((mId) => {
+        const modLessons = lessonsByModuleId.get(mId) || [];
+        lessons.push(...modLessons);
+      });
 
+      const totalLessonsCount = lessons.length;
+      let completedLessonsCount = 0;
 
-            // --------------------------------------------------
-            // Find lessons
-            // --------------------------------------------------
+      lessons.forEach((lesson) => {
+        if (completedLessonIds.has(String(lesson._id))) {
+          completedLessonsCount += 1;
+        }
+      });
 
-            let lessons = [];
+      let calculatedProgress = 0;
+      if (totalLessonsCount > 0) {
+        calculatedProgress = Math.round(
+          (completedLessonsCount / totalLessonsCount) * 100
+        );
+      }
+      calculatedProgress = Math.max(0, Math.min(100, calculatedProgress));
 
-            if (
-              moduleIds.length > 0
-            ) {
-              try {
-                lessons =
-                  await Lesson.find({
-                    $or: [
-                      {
-                        module: {
-                          $in: moduleIds,
-                        },
-                      },
-                      {
-                        moduleId: {
-                          $in: moduleIds,
-                        },
-                      },
-                    ],
-                  })
-                    .select(
-                      "_id module moduleId title"
-                    )
-                    .lean();
-              } catch (lessonError) {
-                console.error(
-                  `Error finding lessons for course ${courseId}:`,
-                  lessonError
-                );
-
-                lessons = [];
-              }
-            }
-
-
-            // --------------------------------------------------
-            // TOTAL LESSONS
-            // --------------------------------------------------
-
-            const totalLessonsCount =
-              lessons.length;
-
-
-            // --------------------------------------------------
-            // COMPLETED LESSONS
-            // --------------------------------------------------
-
-            let completedLessonsCount = 0;
-
-            lessons.forEach(
-              (lesson) => {
-                const lessonId =
-                  String(
-                    lesson._id
-                  );
-
-                if (
-                  completedLessonIds.has(
-                    lessonId
-                  )
-                ) {
-                  completedLessonsCount += 1;
-                }
-              }
-            );
-
-
-            // --------------------------------------------------
-            // CALCULATE PERCENTAGE
-            // --------------------------------------------------
-
-            let calculatedProgress = 0;
-
-            if (
-              totalLessonsCount > 0
-            ) {
-              calculatedProgress =
-                Math.round(
-                  (completedLessonsCount /
-                    totalLessonsCount) *
-                    100
-                );
-            }
-
-
-            calculatedProgress =
-              Math.max(
-                0,
-                Math.min(
-                  100,
-                  calculatedProgress
-                )
-              );
-
-
-            // --------------------------------------------------
-            // RETURN COURSE
-            // --------------------------------------------------
-
-            return {
-              ...course,
-
-              totalLessonsCount,
-
-              completedLessonsCount,
-
-              progress:
-                calculatedProgress,
-
-              lessonsProgress: {
-                completed:
-                  completedLessonsCount,
-
-                total:
-                  totalLessonsCount,
-
-                percentage:
-                  calculatedProgress,
-              },
-            };
-          }
-        )
-      );
+      return {
+        ...course,
+        totalLessonsCount,
+        completedLessonsCount,
+        progress: calculatedProgress,
+        lessonsProgress: {
+          completed: completedLessonsCount,
+          total: totalLessonsCount,
+          percentage: calculatedProgress,
+        },
+      };
+    });
 
 
     // ==========================================================

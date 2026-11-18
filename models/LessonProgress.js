@@ -30,6 +30,8 @@ lessonProgressSchema.index(
   { unique: true }
 );
 
+lessonProgressSchema.index({ student: 1, completed: 1 });
+
 const LessonProgress = mongoose.model(
   "LessonProgress",
   lessonProgressSchema

@@ -1028,7 +1028,8 @@ export const getCourses = async (
         )
         .sort({
           createdAt: -1,
-        });
+        })
+        .lean();
 
     await logAdminActivity(
       req,
@@ -1060,7 +1061,8 @@ export const getPublishedCourses =
           )
           .sort({
             createdAt: -1,
-          });
+          })
+          .lean();
 
       res.status(200).json(courses);
     } catch (error) {
@@ -1079,10 +1081,13 @@ export const getSingleCourse = async (
       await Course.findOne({
         _id: req.params.id,
         status: "published",
-      }).select("-students").populate(
-        "instructor",
-        "fullName name profileImage image role bio rating ratingCount"
-      );
+      })
+        .select("-students")
+        .populate(
+          "instructor",
+          "fullName name profileImage image role bio rating ratingCount"
+        )
+        .lean();
 
     if (!course) {
       return res.status(404).json({
@@ -1503,7 +1508,8 @@ export const getStudentCourses =
           )
           .select(
             "title instructor status"
-          );
+          )
+          .lean();
 
       res.status(200).json(
         enrolledCourses
@@ -1537,7 +1543,8 @@ export const getInstructorCourses =
           )
           .sort({
             createdAt: -1,
-          });
+          })
+          .lean();
 
       res.status(200).json(courses);
     } catch (error) {

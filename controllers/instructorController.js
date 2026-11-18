@@ -13,7 +13,7 @@ export const getInstructorDashboardTelemetry = async (req, res) => {
     const instructorId = req.user.id; 
 
     // 1. Fetch all course architectures owned explicitly by this instructor
-    const instructorCourses = await Course.find({ instructor: instructorId });
+    const instructorCourses = await Course.find({ instructor: instructorId }).lean();
     const courseIds = instructorCourses.map(course => course._id);
 
     // 2. Metrics Pipeline calculations 
@@ -29,40 +29,50 @@ export const getInstructorDashboardTelemetry = async (req, res) => {
     const totalStudentsCount = uniqueStudentIds.size;
 
     // Calculate dynamic processing queue length from Submissions mapping to these courses
-    const pendingGradingCount = await Submission.countDocuments({
-      course: { $in: courseIds },
-      status: "pending"
-    });
+    const pendingGradingCount = courseIds.length > 0
+      ? await Submission.countDocuments({
+          course: { $in: courseIds },
+          status: "pending"
+        })
+      : 0;
 
     const calculatedMeanCompletion = 74; 
 
-    // 3. Structural Course Blueprint mappings
-    const courseDirectoryBlueprint = await Promise.all(
-      instructorCourses.map(async (course) => {
-        const studentEnrollmentCount = course.students ? course.students.length : 0;
-        
-        const rawPendingSubmissions = await Submission.find({ 
-          course: course._id, 
-          status: "pending" 
-        }).populate("student", "fullName");
+    // 3. Structural Course Blueprint mappings (Optimized Batch Fetch)
+    const allPendingSubmissions = courseIds.length > 0
+      ? await Submission.find({
+          course: { $in: courseIds },
+          status: "pending"
+        }).populate("student", "fullName").lean()
+      : [];
 
-        const pendingTasksArray = rawPendingSubmissions.map(sub => ({
-          submissionId: sub._id,
-          taskName: sub.assignmentTitle || "Module Assessment Assignment",
-          courseCode: course.code || "LMS-CORE",
-          submittedAt: sub.createdAt ? new Date(sub.createdAt).toLocaleDateString() : "Just Now"
-        }));
+    const pendingSubmissionsByCourse = new Map();
+    allPendingSubmissions.forEach(sub => {
+      const cId = String(sub.course);
+      if (!pendingSubmissionsByCourse.has(cId)) pendingSubmissionsByCourse.set(cId, []);
+      pendingSubmissionsByCourse.get(cId).push(sub);
+    });
 
-        return {
-          _id: course._id,
-          title: course.title,
-          studentsCount: studentEnrollmentCount,
-          modulesCount: course.modules ? course.modules.length : 0,
-          completionRate: course.averageCompletionProgress || 68, 
-          pendingTasks: pendingTasksArray
-        };
-      })
-    );
+    const courseDirectoryBlueprint = instructorCourses.map((course) => {
+      const studentEnrollmentCount = course.students ? course.students.length : 0;
+      const rawPendingSubmissions = pendingSubmissionsByCourse.get(String(course._id)) || [];
+
+      const pendingTasksArray = rawPendingSubmissions.map(sub => ({
+        submissionId: sub._id,
+        taskName: sub.assignmentTitle || "Module Assessment Assignment",
+        courseCode: course.code || "LMS-CORE",
+        submittedAt: sub.createdAt ? new Date(sub.createdAt).toLocaleDateString() : "Just Now"
+      }));
+
+      return {
+        _id: course._id,
+        title: course.title,
+        studentsCount: studentEnrollmentCount,
+        modulesCount: course.modules ? course.modules.length : 0,
+        completionRate: course.averageCompletionProgress || 68,
+        pendingTasks: pendingTasksArray
+      };
+    });
 
     // 4. Telemetry simulations
     const simulatedWeeklyEngagement = [45, 58, 62, 79, 84, 92];

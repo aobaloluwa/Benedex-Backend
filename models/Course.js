@@ -68,6 +68,10 @@ const courseSchema = new mongoose.Schema(
   }
 );
 
+courseSchema.index({ students: 1 });
+courseSchema.index({ instructor: 1 });
+courseSchema.index({ status: 1 });
+
 const Course = mongoose.model("Course", courseSchema);
 
 export default Course;

@@ -44,6 +44,8 @@ const learningActivitySchema = new mongoose.Schema(
   }
 );
 
+learningActivitySchema.index({ student: 1, createdAt: -1 });
+
 const LearningActivity = mongoose.model(
   "LearningActivity",
   learningActivitySchema
