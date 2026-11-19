@@ -38,19 +38,19 @@ export const authLimiter = rateLimit({
 
     windowMs: 15 * 60 * 1000,
 
-    max: 100,
+    max: 15,
 
     message: {
         message:
-            "Too many attempts detected. Please try again after 15 minutes to secure your account profile.",
+            "Too many registration/auth attempts detected. Please try again after 15 minutes.",
     },
 
     standardHeaders: true,
 
     legacyHeaders: false,
 
-    // Authentication preflight requests should also
-    // never count toward the authentication limit.
-    skip: (req) => req.method === "OPTIONS" || process.env.NODE_ENV !== "production",
+    // Authentication preflight requests should
+    // never count toward the rate limit.
+    skip: (req) => req.method === "OPTIONS",
 
 });

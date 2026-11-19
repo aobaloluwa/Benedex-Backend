@@ -11,12 +11,46 @@ const client = new OAuth2Client(process.env.GOOGLE_CLIENT_ID);
 // @desc    Register standard email user
 export const registerUser = async (req, res) => {
     try {
-        const { fullName, email, password } = req.body;
+        const { fullName, email, password, website, confirmEmail, botField } = req.body;
+
+        // 🤖 1. BOT PROTECTION: Honeypot Trap
+        if (website || confirmEmail || botField) {
+            console.warn(`[BOT BLOCKED] Honeypot field populated by bot from IP: ${req.ip}`);
+            return res.status(400).json({ message: "Automated registration activity detected and blocked." });
+        }
 
         if (!fullName || !email || !password || typeof email !== "string" || typeof password !== "string") {
             return res.status(400).json({ message: "Full name, email, and password are required." });
         }
+
         const normalizedEmail = email.trim().toLowerCase();
+
+        // 🤖 2. BOT PROTECTION: Spam & Disposable Email Pattern Detector
+        const [localPart, domain] = normalizedEmail.split("@");
+        if (!localPart || !domain) {
+            return res.status(400).json({ message: "Invalid email address format." });
+        }
+
+        // Check Gmail dot-trick spam pattern (bots generating random e.m.a.i.l.s)
+        if (domain === "gmail.com" || domain === "googlemail.com") {
+            const dotCount = (localPart.match(/\./g) || []).length;
+            if (dotCount >= 3) {
+                console.warn(`[BOT BLOCKED] Gmail dot-matrix spam email rejected: ${normalizedEmail}`);
+                return res.status(400).json({ message: "Registration rejected: Suspicious email pattern detected." });
+            }
+        }
+
+        // Check disposable temporary email domains
+        const disposableDomains = [
+            "tempmail.com", "mailinator.com", "dispostable.com", "guerrillamail.com",
+            "trashmail.com", "10minutemail.com", "yopmail.com", "getairmail.com",
+            "throwawaymail.com", "sharklasers.com", "temp-mail.org"
+        ];
+        if (disposableDomains.includes(domain)) {
+            console.warn(`[BOT BLOCKED] Disposable email domain rejected: ${normalizedEmail}`);
+            return res.status(400).json({ message: "Disposable email addresses are not permitted." });
+        }
+
         const userExists = await User.findOne({ email: normalizedEmail });
         if (userExists) {
             return res.status(400).json({ message: "User already exists" });
