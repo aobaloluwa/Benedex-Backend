@@ -97,6 +97,35 @@ export const getUsers = async (req, res) => {
   }
 };
 
+// Get public user identity for QR verification
+export const getPublicUserIdentity = async (req, res) => {
+  try {
+    const user = await User.findById(req.params.id).select(
+      "fullName email role status profileImage createdAt updatedAt"
+    );
+
+    if (!user) {
+      return res.status(404).json({ message: "Identity record not found" });
+    }
+
+    res.json({
+      success: true,
+      user: {
+        _id: user._id,
+        fullName: user.fullName,
+        email: user.email,
+        role: user.role,
+        status: user.status,
+        profileImage: user.profileImage,
+        createdAt: user.createdAt,
+        updatedAt: user.updatedAt,
+      },
+    });
+  } catch (error) {
+    res.status(500).json({ message: error.message });
+  }
+};
+
 // Get one user
 export const getSingleUser = async (req, res) => {
   try {

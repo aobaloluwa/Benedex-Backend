@@ -2,6 +2,7 @@ import express from "express";
 import {
   getUsers,
   getSingleUser,
+  getPublicUserIdentity,
   updateRole,
   updateStatus,
   deleteUser,
@@ -11,6 +12,8 @@ import { protect, authorize } from "../middleware/authMiddleware.js";
 
 const router = express.Router();
 
+// Public identity verification endpoint for scanned QR codes
+router.get("/verify-public/:id", getPublicUserIdentity);
 
 router.post(
   "/",
