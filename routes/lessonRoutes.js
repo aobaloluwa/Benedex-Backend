@@ -26,14 +26,14 @@ router.post(
 router.get(
   "/admin/:id",
   protect,
-  authorize("admin"),
+  authorize("admin", "superadmin"),
   getAdminLessonDetails
 );
 
 router.put(
   "/admin/:id",
   protect,
-  authorize("admin"),
+  authorize("admin", "superadmin"),
   updateLesson
 );
 

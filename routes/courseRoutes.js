@@ -26,49 +26,49 @@ const router = express.Router();
 router.post(
   "/admin/generate-from-syllabus",
   protect,
-  authorize("admin"),
+  authorize("admin", "superadmin"),
   generateCourseFromSyllabus
 );
 
 router.get(
   "/admin/generation/active",
   protect,
-  authorize("admin"),
+  authorize("admin", "superadmin"),
   getActiveCourseGeneration
 );
 
 router.get(
   "/admin/generation/:jobId",
   protect,
-  authorize("admin"),
+  authorize("admin", "superadmin"),
   getCourseGenerationStatus
 );
 
 router.get(
   "/admin/all",
   protect,
-  authorize("admin"),
+  authorize("admin", "superadmin"),
   getCourses
 );
 
 router.get(
   "/admin/:id/structure",
   protect,
-  authorize("admin"),
+  authorize("admin", "superadmin"),
   getAdminCourseStructure
 );
 
 router.put(
   "/admin/:id",
   protect,
-  authorize("admin"),
+  authorize("admin", "superadmin"),
   updateCourse
 );
 
 router.patch(
   "/admin/:id/publish",
   protect,
-  authorize("admin"),
+  authorize("admin", "superadmin"),
   publishCourse
 );
 

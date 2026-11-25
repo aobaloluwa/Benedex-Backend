@@ -27,14 +27,14 @@ router.post(
 router.get(
   "/admin/:quizId",
   protect,
-  authorize("admin"),
+  authorize("admin", "superadmin"),
   getAdminQuizDetails
 );
 
 router.put(
   "/admin/:quizId",
   protect,
-  authorize("admin"),
+  authorize("admin", "superadmin"),
   updateQuiz
 );
 

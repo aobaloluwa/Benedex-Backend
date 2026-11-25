@@ -11,27 +11,27 @@ import {
 
 const router = express.Router();
 
-// Existing Analytics Route
+// Existing Analytics Route - Accessible by admin and superadmin
 router.get(
   "/analytics",
   protect,
-  authorize("superadmin"),
+  authorize("admin", "superadmin"),
   getAdminAnalytics
 );
 
-// 🆕 Fetch all AI-generated support tickets
+// Fetch all AI-generated support tickets
 router.get(
   "/tickets",
   protect,
-  authorize("admin"),
+  authorize("admin", "superadmin"),
   getPaymentTickets
 );
 
-// 🆕 Process (Approve/Reject) a support ticket by ID
+// Process (Approve/Reject) a support ticket by ID
 router.put(
   "/tickets/:ticketId",
   protect,
-  authorize("admin"),
+  authorize("admin", "superadmin"),
   resolvePaymentTicket
 );
 
